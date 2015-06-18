@@ -11,6 +11,11 @@ import sqlite3
 def generar_excel(dirname, datos):
     cabecera = datos[0]
     detalles = datos[1]
+    # Incluir el nombre del depositante en los detalles
+    lista_depositantes = procesar_codigos(detalles)
+    for i, detalle in enumerate(detalles):
+        detalle[1] = lista_depositantes[i]
+    
     ruta_archivo = dirname + "/"
     nombre_archivo = "reporte.xls"
     
@@ -84,11 +89,16 @@ def generar_excel(dirname, datos):
             cell_style = styles['decimal']
         else:
             cell_style = styles['h_default']
-        if rowx == 3:
+            
+        # Establezco el ancho de la 2da y 6ta columna
+        if rowx == 0:
+            sheet.col(colx).width = 5200
+        elif rowx == 3:
             colx = 5
             rowx = 0
+            sheet.col(colx).width = 4090
         sheet.write(rowx+i, colx, value, style=cell_style)
-        sheet.col(colx).width = 4090
+        
         rowx += 1
         
     # Datos de los Detalles
@@ -163,7 +173,7 @@ def procesar_cdpg(cdpgfile, empresa_alias):
                 break
         else:
             # Detalle
-            codigo = line[13:27]
+            codigo = line[13:27].replace(" ", "")
             depositante = " "
             retorno = line[27:52]
             dato_adicional = line[52:57]
@@ -208,6 +218,20 @@ def procesar_cdpg(cdpgfile, empresa_alias):
     else:
         return [cabecera, detalles]
     
+def procesar_codigos(datos):
+    conn = sqlite3.connect('database.db')
+    lista = []
+    for detalle in datos:
+        r = [(record[0] + " " + record[1] + " " + record[2]) for record in conn.execute("select ape_pat, ape_mat, nombres from clientes where codigo='%s'" % detalle[0])]
+        if len(r) > 0:
+            depositante = r[0]
+        else:
+            print "Depositante Deconocido: ", detalle[0]
+            depositante = "DESCONOCIDO"
+        lista.append(depositante)
+    conn.close()
+    return lista
+    
 def abrir_archivo(ruta_archivo, nombre_archivo):
     ext_archivo = str(nombre_archivo).lower()[-3:]
     archivo = None
@@ -230,16 +254,16 @@ class MainWindow(wx.Frame):
         self.CreateStatusBar()
         
         # ComboBox
-        areaD = {}
+        empresaD = {}
         empresas = Empresas()
         for empresa in empresas.todas():
-            areaD[empresa] = empresa
+            empresaD[empresa] = empresa
         
-        areaList = sorted(areaD.keys())
+        empresaList = sorted(empresaD.keys())
         
         wx.StaticText(self, -1, "Seleccione una empresa: ", (10, 10))
         self.combo1 = wx.ComboBox(self, -1, value=".......", pos=wx.Point(10, 30),
-                                  size=wx.Size(150, 28), choices=areaList)
+                                  size=wx.Size(150, 28), choices=empresaList)
         
         # Menu
         filemenu = wx.Menu()
@@ -283,7 +307,7 @@ class MainWindow(wx.Frame):
         dlg.Destroy()
 
     def OnAbout(self,e):
-        dlg = wx.MessageDialog(self, "Convierte CDPG del banco a Excel \n\n\t V0.1a",
+        dlg = wx.MessageDialog(self, "Convierte CDPG del banco a Excel \n\n\t V0.2",
                                "PyCDPGConverter", wx.OK)
         dlg.ShowModal()
         dlg.Destroy()
