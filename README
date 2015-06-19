@@ -1,7 +1,7 @@
 
 Name: PyCDPG Converter
 
-Version: 0.1
+Version: 0.3
 
 Un programa hecho en python con WX-Widgets para convertir los archivos
 CDPG del Banco de Crédito del Perú (BCP) en archivos Excel.
@@ -34,4 +34,4 @@ Si usas Windows 7, entonces necesitarás además:
     - Microsoft Visual C++ 2008 Redistributable Package (x86)
 
 
-Fecha: Febrero 24, 2014
+Fecha: Junio 19, 2015
